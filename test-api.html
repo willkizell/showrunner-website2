@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test - ShowRunner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #121212;
+            color: #fff;
+        }
+        .test-section {
+            background: #1f1f1f;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #d1a442;
+            color: #000;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #b8943a;
+        }
+        .result {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+        }
+        .error {
+            background: #4a2a2a;
+            color: #ff6b6b;
+        }
+        .success {
+            background: #2a4a2a;
+            color: #6bff6b;
+        }
+    </style>
+</head>
+<body>
+    <h1>ShowRunner API Test</h1>
+    
+    <div class="test-section">
+        <h2>Text Generation Test</h2>
+        <p>Test the AI text generation functionality:</p>
+        <button onclick="testTextGeneration()">Test Text Generation</button>
+        <div id="textResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Text-to-Speech Test</h2>
+        <p>Test the text-to-speech functionality:</p>
+        <input type="text" id="speechText" value="Hello, this is a test announcement from ShowRunner!" style="width: 100%; padding: 10px; margin: 10px 0; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px;">
+        <button onclick="testSpeech()">Test Speech</button>
+        <div id="speechResult" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Environment Check</h2>
+        <p>Check if the API is properly configured:</p>
+        <button onclick="checkEnvironment()">Check Environment</button>
+        <div id="envResult" class="result"></div>
+    </div>
+
+    <script>
+        async function testTextGeneration() {
+            const resultDiv = document.getElementById('textResult');
+            resultDiv.textContent = 'Testing...';
+            resultDiv.className = 'result';
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: 'Generate a short welcome announcement for a corporate event with 50 guests.'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.choices && data.choices[0]?.message?.content) {
+                    resultDiv.textContent = '✅ SUCCESS!\n\nGenerated content:\n' + data.choices[0].message.content;
+                    resultDiv.className = 'result success';
+                } else {
+                    throw new Error('Unexpected response format: ' + JSON.stringify(data, null, 2));
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ ERROR: ' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function testSpeech() {
+            const resultDiv = document.getElementById('speechResult');
+            const text = document.getElementById('speechText').value;
+            
+            resultDiv.textContent = 'Testing speech synthesis...';
+            resultDiv.className = 'result';
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                
+                resultDiv.textContent = '✅ SUCCESS! Playing audio...';
+                resultDiv.className = 'result success';
+                
+                audio.play();
+            } catch (error) {
+                resultDiv.textContent = '❌ ERROR: ' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+
+        async function checkEnvironment() {
+            const resultDiv = document.getElementById('envResult');
+            resultDiv.textContent = 'Checking environment...';
+            resultDiv.className = 'result';
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: 'test'
+                    })
+                });
+
+                if (response.status === 500) {
+                    const errorData = await response.json();
+                    if (errorData.error && errorData.error.includes('OPENAI_API_KEY')) {
+                        resultDiv.textContent = '❌ ERROR: OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.';
+                        resultDiv.className = 'result error';
+                    } else {
+                        resultDiv.textContent = '❌ ERROR: ' + errorData.error;
+                        resultDiv.className = 'result error';
+                    }
+                } else if (response.ok) {
+                    resultDiv.textContent = '✅ SUCCESS: API is properly configured and working!';
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = '❌ ERROR: Unexpected response status: ' + response.status;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = '❌ ERROR: ' + error.message;
+                resultDiv.className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html> 
